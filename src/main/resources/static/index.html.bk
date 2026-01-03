@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="shortcut icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;✅&lt;/text&gt;&lt;/svg&gt;">
+    <title>My TODO</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+      .container { max-width: 720px; margin: 24px auto; padding: 16px; }
+      header { margin-bottom: 12px; }
+      h1 { font-size: 30px; margin: 0; }
+      .inputRow { display: flex; gap: 8px; margin: 12px 0 16px; }
+      .inputRow input[type="text"] { flex: 1; padding: 8px; font-size: 14px; }
+      .btn { padding: 8px 12px; font-size: 14px; }
+      h3 { margin: 16px 0 8px; font-size: 16px; }
+      ul { list-style: none; padding-left: 0; margin: 0; }
+      li { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #ddd; }
+      .title { flex: 1; }
+      .title.editable { cursor: pointer; transition: color 0.2s; }
+      .title.editable:not(.completed):hover { color: #111; text-decoration: underline; }
+      .title.completed { text-decoration: line-through; color: #888; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>📋 シンプル TODO アプリ</h1>
+      </header>
+
+      <div class="inputRow">
+        <label for="new-title" style="position:absolute;left:-9999px;">やることを追加</label>
+        <input id="new-title" type="text" placeholder="やることを追加" maxlength="200">
+        <button id="add" class="btn btn-primary">追加</button>
+        <button id="delete-all" class="btn btn-danger">全削除</button>
+      </div>
+
+      <h2>🔸 未完了タスク</h2>
+      <ul id="list"></ul>
+
+      <h2>✅ 完了タスク</h2>
+      <ul id="completed-list"></ul>
+    </div>
+
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <script src="./app.js"></script>
+  </body>
+</html>
