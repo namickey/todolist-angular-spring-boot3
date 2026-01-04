@@ -1,87 +1,98 @@
-<div class="app">
-  <header class="app__header">
-    <div>
-      <p class="eyebrow">Spring Boot + Angular</p>
-      <h1>📋 シンプル TODO</h1>
-      <p class="caption">バックエンドの WebAPI とつながる Angular 実装です。</p>
-    </div>
-    <div class="meta">
-      <button type="button" class="ghost" (click)="refresh()" [disabled]="loading">再読込</button>
-      <span class="meta__time">最終取得: {{ formatDate(lastSyncedAt) }}</span>
-    </div>
-  </header>
+<ng-container *ngIf="viewModel$ | async as vm">
+  <div class="app">
+    <header class="app__header">
+      <div>
+        <p class="eyebrow">Spring Boot + Angular</p>
+        <h1>📋 シンプル TODO</h1>
+        <p class="caption">バックエンドの WebAPI とつながる Angular 実装です。</p>
+      </div>
+      <div class="meta">
+        <button type="button" class="ghost" (click)="refresh()" [disabled]="vm.loading">再読込</button>
+        <span class="meta__time">最終取得: {{ formatDate(vm.lastSyncedAt ?? undefined) }}</span>
+      </div>
+    </header>
 
-  <section class="card">
-    <div class="input-row">
-      <label class="sr-only" for="new-title">やることを追加</label>
-      <input
-        id="new-title"
-        type="text"
-        maxlength="200"
-        placeholder="やることを追加"
-        [(ngModel)]="newTodoTitle"
-        (keyup.enter)="addTodo()"
-      />
-      <button type="button" class="primary" (click)="addTodo()" [disabled]="loading">追加</button>
-      <button type="button" class="danger" (click)="clearAll()" [disabled]="!todos.length">全削除</button>
-    </div>
-    <div class="status-row">
-      <span>未完了 {{ pendingCount }} 件</span>
-      <span>完了 {{ completedCount }} 件</span>
-    </div>
-    <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
-    <p class="muted" *ngIf="loading">読み込み中...</p>
-  </section>
+    <section class="card">
+      <div class="input-row">
+        <label class="sr-only" for="new-title">やることを追加</label>
+        <input
+          id="new-title"
+          type="text"
+          maxlength="200"
+          placeholder="やることを追加"
+          [(ngModel)]="newTodoTitle"
+          (keyup.enter)="addTodo()"
+        />
+        <button type="button" class="primary" (click)="addTodo()" [disabled]="vm.loading">追加</button>
+        <button
+          type="button"
+          class="danger"
+          (click)="clearAll()"
+          [disabled]="vm.loading || vm.totalCount === 0"
+        >
+          全削除
+        </button>
+      </div>
+      <div class="status-row">
+        <span>未完了 {{ vm.pendingCount }} 件</span>
+        <span>完了 {{ vm.completedCount }} 件</span>
+      </div>
+      <p class="error" *ngIf="formError || vm.errorMessage">
+        {{ formError || vm.errorMessage }}
+      </p>
+      <p class="muted" *ngIf="vm.loading">読み込み中...</p>
+    </section>
 
-  <section class="list-group">
-    <div class="list-group__header">
-      <h2>🔸 未完了</h2>
-    </div>
-    <ul>
-      <ng-container *ngFor="let todo of pendingTodos; trackBy: trackByTodo">
-        <li [class.disabled]="loading">
-          <label class="checkbox">
-            <input type="checkbox" [checked]="todo.completed" (change)="toggleCompleted(todo)" />
-          </label>
-          <div class="title">
-            <ng-container *ngIf="editingTodoId === todo.id; else viewTitle">
-              <input
-                class="edit-input"
-                [(ngModel)]="editingTitle"
-                (keyup.enter)="submitEdit(todo)"
-              />
-              <button type="button" class="ghost" (click)="cancelEditing()">キャンセル</button>
-            </ng-container>
-            <ng-template #viewTitle>
-              <span class="editable" (dblclick)="startEditing(todo)">{{ todo.title }}</span>
-            </ng-template>
-            <p class="timestamp">更新: {{ formatDate(todo.updatedAt) }}</p>
-          </div>
-          <button type="button" class="danger ghost" (click)="deleteTodo(todo)">削除</button>
-        </li>
-      </ng-container>
-      <li class="empty" *ngIf="!pendingCount && !loading">未完了のタスクはありません。</li>
-    </ul>
-  </section>
+    <section class="list-group">
+      <div class="list-group__header">
+        <h2>🔸 未完了</h2>
+      </div>
+      <ul>
+        <ng-container *ngFor="let todo of vm.pendingTodos; trackBy: trackByTodo">
+          <li [class.disabled]="vm.loading">
+            <label class="checkbox">
+              <input type="checkbox" [checked]="todo.completed" (change)="toggleCompleted(todo)" />
+            </label>
+            <div class="title">
+              <ng-container *ngIf="editingTodoId === todo.id; else viewTitle">
+                <input
+                  class="edit-input"
+                  [(ngModel)]="editingTitle"
+                  (keyup.enter)="submitEdit(todo)"
+                />
+                <button type="button" class="ghost" (click)="cancelEditing()">キャンセル</button>
+              </ng-container>
+              <ng-template #viewTitle>
+                <span class="editable" (dblclick)="startEditing(todo)">{{ todo.title }}</span>
+              </ng-template>
+              <p class="timestamp">更新: {{ formatDate(todo.updatedAt) }}</p>
+            </div>
+            <button type="button" class="danger ghost" (click)="deleteTodo(todo)">削除</button>
+          </li>
+        </ng-container>
+        <li class="empty" *ngIf="!vm.pendingCount && !vm.loading">未完了のタスクはありません。</li>
+      </ul>
+    </section>
 
-  <section class="list-group">
-    <div class="list-group__header">
-      <h2>✅ 完了</h2>
-    </div>
-    <ul>
-      <ng-container *ngFor="let todo of completedTodos; trackBy: trackByTodo">
-        <li [class.disabled]="loading">
-          <label class="checkbox">
-            <input type="checkbox" [checked]="todo.completed" (change)="toggleCompleted(todo)" />
-          </label>
-          <div class="title">
-            <span class="completed">{{ todo.title }}</span>
-            <p class="timestamp">完了: {{ formatDate(todo.updatedAt) }}</p>
-          </div>
-          <button type="button" class="danger ghost" (click)="deleteTodo(todo)">削除</button>
-        </li>
-      </ng-container>
-      <li class="empty" *ngIf="!completedCount && !loading">完了したタスクはまだありません。</li>
-    </ul>
-  </section>
-</div>
+    <section class="list-group">
+      <div class="list-group__header">
+        <h2>✅ 完了</h2>
+      </div>
+      <ul>
+        <ng-container *ngFor="let todo of vm.completedTodos; trackBy: trackByTodo">
+          <li [class.disabled]="vm.loading">
+            <label class="checkbox">
+              <input type="checkbox" [checked]="todo.completed" (change)="toggleCompleted(todo)" />
+            </label>
+            <div class="title">
+              <span class="completed">{{ todo.title }}</span>
+              <p class="timestamp">完了: {{ formatDate(todo.updatedAt) }}</p>
+            </div>
+            <button type="button" class="danger ghost" (click)="deleteTodo(todo)">削除</button>
+          </li>
+        </ng-container>
+        <li class="empty" *ngIf="!vm.completedCount && !vm.loading">完了したタスクはまだありません。</li>
+      </ul>
+    </section>
+  </div>
+</ng-container>
