@@ -15,8 +15,6 @@ import { Todo, TodoApiService } from './todo-api.service';
 export class AppComponent implements OnInit {
   title = 'frontend';
   todos: Todo[] = [];
-  pendingTodos: Todo[] = [];
-  completedTodos: Todo[] = [];
   newTodoTitle = '';
   editingTodoId: number | null = null;
   editingTitle = '';
@@ -28,6 +26,14 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadTodos();
+  }
+
+  get pendingTodos(): Todo[] {
+    return this.todos.filter((todo) => !todo.completed);
+  }
+
+  get completedTodos(): Todo[] {
+    return this.todos.filter((todo) => todo.completed);
   }
 
   get pendingCount(): number {
@@ -48,7 +54,6 @@ export class AppComponent implements OnInit {
     this.todoApi.create(title).subscribe({
       next: (created) => {
         this.todos = [created, ...this.todos];
-        this.updateDerivedTodos();
         this.newTodoTitle = '';
         this.errorMessage = undefined;
       },
@@ -108,7 +113,6 @@ export class AppComponent implements OnInit {
     this.todoApi.delete(todo.id).subscribe({
       next: () => {
         this.todos = this.todos.filter((item) => item.id !== todo.id);
-        this.updateDerivedTodos();
       },
       error: () => {
         this.errorMessage = 'タスクの削除に失敗しました。';
@@ -128,7 +132,6 @@ export class AppComponent implements OnInit {
     this.todoApi.deleteAll().subscribe({
       next: () => {
         this.todos = [];
-        this.updateDerivedTodos();
         this.lastSyncedAt = new Date().toISOString();
         this.errorMessage = undefined;
       },
@@ -158,7 +161,6 @@ export class AppComponent implements OnInit {
     this.todoApi.list().subscribe({
       next: (response) => {
         this.todos = response;
-        this.updateDerivedTodos();
         this.lastSyncedAt = new Date().toISOString();
         this.loading = false;
         this.errorMessage = undefined;
@@ -172,13 +174,7 @@ export class AppComponent implements OnInit {
 
   private replaceTodo(updated: Todo): void {
     this.todos = this.todos.map((item) => (item.id === updated.id ? updated : item));
-    this.updateDerivedTodos();
     this.errorMessage = undefined;
-  }
-
-  private updateDerivedTodos(): void {
-    this.pendingTodos = this.todos.filter((todo) => !todo.completed);
-    this.completedTodos = this.todos.filter((todo) => todo.completed);
   }
   private resetEditing(): void {
     this.editingTodoId = null;
