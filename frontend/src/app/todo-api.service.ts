@@ -24,7 +24,7 @@ export class TodoApiService {
   private readonly loadingSubject = new BehaviorSubject<boolean>(false);
   private readonly errorSubject = new BehaviorSubject<string | null>(null);
   private readonly lastSyncedSubject = new BehaviorSubject<string | null>(null);
-  private activeRequests = 0;
+  private activeFetchRequests = 0;
 
   readonly todos$ = this.todosSubject.asObservable();
   readonly loading$ = this.loadingSubject.asObservable();
@@ -44,7 +44,8 @@ export class TodoApiService {
         this.todosSubject.next(todos);
         this.lastSyncedSubject.next(new Date().toISOString());
       },
-      'タスクの取得に失敗しました。'
+      'タスクの取得に失敗しました。',
+      { mode: 'fetch' }
     );
   }
 
@@ -95,8 +96,14 @@ export class TodoApiService {
     this.errorSubject.next(null);
   }
 
-  private handleRequest<T>(request: Observable<T>, onSuccess: (value: T) => void, errorMessage: string): Observable<T> {
-    this.beginRequest();
+  private handleRequest<T>(
+    request: Observable<T>,
+    onSuccess: (value: T) => void,
+    errorMessage: string,
+    options: { mode?: 'fetch' | 'mutate' } = {}
+  ): Observable<T> {
+    const mode = options.mode ?? 'mutate';
+    this.beginRequest(mode);
     return request.pipe(
       tap((value) => {
         onSuccess(value);
@@ -106,21 +113,25 @@ export class TodoApiService {
         this.errorSubject.next(errorMessage);
         return throwError(() => error);
       }),
-      finalize(() => this.endRequest())
+      finalize(() => this.endRequest(mode))
     );
   }
 
-  private beginRequest(): void {
-    this.activeRequests += 1;
-    if (this.activeRequests === 1) {
-      this.loadingSubject.next(true);
+  private beginRequest(mode: 'fetch' | 'mutate'): void {
+    if (mode === 'fetch') {
+      this.activeFetchRequests += 1;
+      if (this.activeFetchRequests === 1) {
+        this.loadingSubject.next(true);
+      }
     }
   }
 
-  private endRequest(): void {
-    this.activeRequests = Math.max(0, this.activeRequests - 1);
-    if (this.activeRequests === 0) {
-      this.loadingSubject.next(false);
+  private endRequest(mode: 'fetch' | 'mutate'): void {
+    if (mode === 'fetch') {
+      this.activeFetchRequests = Math.max(0, this.activeFetchRequests - 1);
+      if (this.activeFetchRequests === 0) {
+        this.loadingSubject.next(false);
+      }
     }
   }
 }

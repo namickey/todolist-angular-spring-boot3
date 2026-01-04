@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { combineLatest, map, shareReplay } from 'rxjs';
+import { combineLatest, finalize, map, shareReplay } from 'rxjs';
 
 import { Todo, TodoApiService } from './todo-api.service';
 
@@ -19,6 +19,9 @@ export class AppComponent implements OnInit {
   editingTodoId: number | null = null;
   editingTitle = '';
   formError?: string;
+  isSubmittingNewTodo = false;
+  isClearingAll = false;
+  private mutatingTodoIds = new Set<number>();
 
   private readonly pendingTodos$ = this.todoApi.todos$.pipe(
     map((todos) => todos.filter((todo) => !todo.completed)),
@@ -69,7 +72,11 @@ export class AppComponent implements OnInit {
       return;
     }
 
-    this.todoApi.create(title).subscribe({
+    this.isSubmittingNewTodo = true;
+    this.todoApi
+      .create(title)
+      .pipe(finalize(() => (this.isSubmittingNewTodo = false)))
+      .subscribe({
       next: () => {
         this.newTodoTitle = '';
         this.formError = undefined;
@@ -77,16 +84,20 @@ export class AppComponent implements OnInit {
       error: () => {
         // エラーメッセージはサービス側で管理
       }
-    });
+      });
   }
 
   toggleCompleted(todo: Todo): void {
-    this.todoApi.update(todo.id, { completed: !todo.completed }, '完了状態の更新に失敗しました。').subscribe({
-      next: () => {
-        this.formError = undefined;
-      },
-      error: () => {}
-    });
+    this.setTodoMutating(todo.id, true);
+    this.todoApi
+      .update(todo.id, { completed: !todo.completed }, '完了状態の更新に失敗しました。')
+      .pipe(finalize(() => this.setTodoMutating(todo.id, false)))
+      .subscribe({
+        next: () => {
+          this.formError = undefined;
+        },
+        error: () => {}
+      });
   }
 
   startEditing(todo: Todo): void {
@@ -112,13 +123,21 @@ export class AppComponent implements OnInit {
       return;
     }
 
-    this.todoApi.update(todo.id, { title: trimmed }, 'タスク名の更新に失敗しました。').subscribe({
-      next: () => {
-        this.resetEditing();
-        this.formError = undefined;
-      },
-      error: () => {}
-    });
+    this.setTodoMutating(todo.id, true);
+    this.todoApi
+      .update(todo.id, { title: trimmed }, 'タスク名の更新に失敗しました。')
+      .pipe(
+        finalize(() => {
+          this.setTodoMutating(todo.id, false);
+        })
+      )
+      .subscribe({
+        next: () => {
+          this.resetEditing();
+          this.formError = undefined;
+        },
+        error: () => {}
+      });
   }
 
   cancelEditing(): void {
@@ -126,12 +145,16 @@ export class AppComponent implements OnInit {
   }
 
   deleteTodo(todo: Todo): void {
-    this.todoApi.delete(todo.id).subscribe({
-      next: () => {
-        this.formError = undefined;
-      },
-      error: () => {}
-    });
+    this.setTodoMutating(todo.id, true);
+    this.todoApi
+      .delete(todo.id)
+      .pipe(finalize(() => this.setTodoMutating(todo.id, false)))
+      .subscribe({
+        next: () => {
+          this.formError = undefined;
+        },
+        error: () => {}
+      });
   }
 
   refresh(): void {
@@ -143,12 +166,16 @@ export class AppComponent implements OnInit {
       return;
     }
 
-    this.todoApi.deleteAll().subscribe({
-      next: () => {
-        this.formError = undefined;
-      },
-      error: () => {}
-    });
+    this.isClearingAll = true;
+    this.todoApi
+      .deleteAll()
+      .pipe(finalize(() => (this.isClearingAll = false)))
+      .subscribe({
+        next: () => {
+          this.formError = undefined;
+        },
+        error: () => {}
+      });
   }
 
   formatDate(value?: string): string {
@@ -173,6 +200,18 @@ export class AppComponent implements OnInit {
       },
       error: () => {}
     });
+  }
+
+  isTodoMutating(id: number): boolean {
+    return this.mutatingTodoIds.has(id);
+  }
+
+  private setTodoMutating(id: number, mutating: boolean): void {
+    if (mutating) {
+      this.mutatingTodoIds.add(id);
+    } else {
+      this.mutatingTodoIds.delete(id);
+    }
   }
   private resetEditing(): void {
     this.editingTodoId = null;

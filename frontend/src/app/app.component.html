@@ -22,13 +22,21 @@
           placeholder="やることを追加"
           [(ngModel)]="newTodoTitle"
           (keyup.enter)="addTodo()"
+          [disabled]="vm.loading || isSubmittingNewTodo"
         />
-        <button type="button" class="primary" (click)="addTodo()" [disabled]="vm.loading">追加</button>
+        <button
+          type="button"
+          class="primary"
+          (click)="addTodo()"
+          [disabled]="vm.loading || isSubmittingNewTodo"
+        >
+          追加
+        </button>
         <button
           type="button"
           class="danger"
           (click)="clearAll()"
-          [disabled]="vm.loading || vm.totalCount === 0"
+          [disabled]="vm.loading || vm.totalCount === 0 || isClearingAll"
         >
           全削除
         </button>
@@ -49,9 +57,14 @@
       </div>
       <ul>
         <ng-container *ngFor="let todo of vm.pendingTodos; trackBy: trackByTodo">
-          <li [class.disabled]="vm.loading">
+          <li [class.disabled]="vm.loading || isTodoMutating(todo.id)">
             <label class="checkbox">
-              <input type="checkbox" [checked]="todo.completed" (change)="toggleCompleted(todo)" />
+              <input
+                type="checkbox"
+                [checked]="todo.completed"
+                (change)="toggleCompleted(todo)"
+                [disabled]="vm.loading || isTodoMutating(todo.id)"
+              />
             </label>
             <div class="title">
               <ng-container *ngIf="editingTodoId === todo.id; else viewTitle">
@@ -59,6 +72,7 @@
                   class="edit-input"
                   [(ngModel)]="editingTitle"
                   (keyup.enter)="submitEdit(todo)"
+                  [disabled]="isTodoMutating(todo.id)"
                 />
                 <button type="button" class="ghost" (click)="cancelEditing()">キャンセル</button>
               </ng-container>
@@ -67,7 +81,14 @@
               </ng-template>
               <p class="timestamp">更新: {{ formatDate(todo.updatedAt) }}</p>
             </div>
-            <button type="button" class="danger ghost" (click)="deleteTodo(todo)">削除</button>
+            <button
+              type="button"
+              class="danger ghost"
+              (click)="deleteTodo(todo)"
+              [disabled]="vm.loading || isTodoMutating(todo.id)"
+            >
+              削除
+            </button>
           </li>
         </ng-container>
         <li class="empty" *ngIf="!vm.pendingCount && !vm.loading">未完了のタスクはありません。</li>
@@ -80,15 +101,27 @@
       </div>
       <ul>
         <ng-container *ngFor="let todo of vm.completedTodos; trackBy: trackByTodo">
-          <li [class.disabled]="vm.loading">
+          <li [class.disabled]="vm.loading || isTodoMutating(todo.id)">
             <label class="checkbox">
-              <input type="checkbox" [checked]="todo.completed" (change)="toggleCompleted(todo)" />
+              <input
+                type="checkbox"
+                [checked]="todo.completed"
+                (change)="toggleCompleted(todo)"
+                [disabled]="vm.loading || isTodoMutating(todo.id)"
+              />
             </label>
             <div class="title">
               <span class="completed">{{ todo.title }}</span>
               <p class="timestamp">完了: {{ formatDate(todo.updatedAt) }}</p>
             </div>
-            <button type="button" class="danger ghost" (click)="deleteTodo(todo)">削除</button>
+            <button
+              type="button"
+              class="danger ghost"
+              (click)="deleteTodo(todo)"
+              [disabled]="vm.loading || isTodoMutating(todo.id)"
+            >
+              削除
+            </button>
           </li>
         </ng-container>
         <li class="empty" *ngIf="!vm.completedCount && !vm.loading">完了したタスクはまだありません。</li>
