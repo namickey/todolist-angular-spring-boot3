@@ -60,10 +60,12 @@ export class AppComponent implements OnInit {
 
   constructor(private todoApi: TodoApiService) {}
 
+  /** 初期表示時にタスク一覧を取得する */
   ngOnInit(): void {
     this.loadTodos();
   }
 
+  /** 新しいタスクを追加する */
   addTodo(): void {
     const title = this.newTodoTitle.trim();
     if (!title) {
@@ -86,6 +88,7 @@ export class AppComponent implements OnInit {
       });
   }
 
+  /** 完了状態をトグルする */
   toggleCompleted(todo: Todo): void {
     this.setTodoMutating(todo.id, true);
     this.todoApi
@@ -99,12 +102,14 @@ export class AppComponent implements OnInit {
       });
   }
 
+  /** 編集開始時に対象の情報を保持する */
   startEditing(todo: Todo): void {
     this.editingTodoId = todo.id;
     this.editingTitle = todo.title;
     this.formError = undefined;
   }
 
+  /** 編集内容をAPIへ送信する */
   submitEdit(todo: Todo): void {
     if (this.editingTodoId !== todo.id) {
       return;
@@ -139,10 +144,12 @@ export class AppComponent implements OnInit {
       });
   }
 
+  /** 編集モードをキャンセルする */
   cancelEditing(): void {
     this.resetEditing();
   }
 
+  /** 単一タスクを削除する */
   deleteTodo(todo: Todo): void {
     this.setTodoMutating(todo.id, true);
     this.todoApi
@@ -156,10 +163,12 @@ export class AppComponent implements OnInit {
       });
   }
 
+  /** 最新状態へ再読み込みする */
   refresh(): void {
     this.loadTodos();
   }
 
+  /** すべてのタスクをクリアする */
   clearAll(): void {
     if (!this.todoApi.snapshot.length) {
       return;
@@ -177,6 +186,7 @@ export class AppComponent implements OnInit {
       });
   }
 
+  /** 日付文字列を表示用に整形する */
   formatDate(value?: string): string {
     if (!value) {
       return '—';
@@ -192,6 +202,7 @@ export class AppComponent implements OnInit {
     return todo.id;
   }
 
+  /** API からタスク一覧を取得する */
   private loadTodos(): void {
     this.todoApi.refresh().subscribe({
       next: () => {
@@ -205,6 +216,7 @@ export class AppComponent implements OnInit {
     return this.mutatingTodoIds.has(id);
   }
 
+  /** 指定IDの更新状態をセットする */
   private setTodoMutating(id: number, mutating: boolean): void {
     if (mutating) {
       this.mutatingTodoIds.add(id);
@@ -212,6 +224,8 @@ export class AppComponent implements OnInit {
       this.mutatingTodoIds.delete(id);
     }
   }
+
+  /** 編集用フィールドを初期化する */
   private resetEditing(): void {
     this.editingTodoId = null;
     this.editingTitle = '';

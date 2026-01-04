@@ -31,12 +31,15 @@ export class TodoApiService {
   readonly error$ = this.errorSubject.asObservable();
   readonly lastSynced$ = this.lastSyncedSubject.asObservable();
 
+  /** HttpClient を注入して HTTP 通信を行う */
   constructor(private http: HttpClient) {}
 
+  /** 現在保持しているタスク一覧を即時取得する */
   get snapshot(): Todo[] {
     return this.todosSubject.value;
   }
 
+  /** サーバーから最新のタスク一覧を取得して状態を更新する */
   refresh(): Observable<Todo[]> {
     return this.handleRequest(
       this.http.get<Todo[]>(this.baseUrl),
@@ -49,6 +52,7 @@ export class TodoApiService {
     );
   }
 
+  /** 新しいタスクを作成しローカル状態へ反映する */
   create(title: string): Observable<Todo> {
     return this.handleRequest(
       this.http.post<Todo>(this.baseUrl, { title }),
@@ -59,6 +63,7 @@ export class TodoApiService {
     );
   }
 
+  /** 指定 ID のタスクを更新し結果をローカルへ反映する */
   update(id: number, payload: TodoUpdatePayload, errorMessage = 'タスクの更新に失敗しました。'): Observable<Todo> {
     return this.handleRequest(
       this.http.put<Todo>(`${this.baseUrl}/${id}`, payload),
@@ -71,6 +76,7 @@ export class TodoApiService {
     );
   }
 
+  /** 単一タスクを削除しローカル状態から除外する */
   delete(id: number): Observable<void> {
     return this.handleRequest(
       this.http.delete<void>(`${this.baseUrl}/${id}`),
@@ -81,6 +87,7 @@ export class TodoApiService {
     );
   }
 
+  /** 全てのタスクを削除し同期時刻を更新する */
   deleteAll(): Observable<void> {
     return this.handleRequest(
       this.http.delete<void>(this.baseUrl),
@@ -92,10 +99,12 @@ export class TodoApiService {
     );
   }
 
+  /** エラーメッセージをクリアして UI をリセットする */
   clearError(): void {
     this.errorSubject.next(null);
   }
 
+  /** 共通の API 呼び出しロジックをまとめて副作用やエラー処理を行う */
   private handleRequest<T>(
     request: Observable<T>,
     onSuccess: (value: T) => void,
@@ -117,6 +126,7 @@ export class TodoApiService {
     );
   }
 
+  /** フェッチ系リクエスト開始時のローディング状態を管理する */
   private beginRequest(mode: 'fetch' | 'mutate'): void {
     if (mode === 'fetch') {
       this.activeFetchRequests += 1;
@@ -126,6 +136,7 @@ export class TodoApiService {
     }
   }
 
+  /** フェッチ系リクエスト完了時にローディング状態を解消する */
   private endRequest(mode: 'fetch' | 'mutate'): void {
     if (mode === 'fetch') {
       this.activeFetchRequests = Math.max(0, this.activeFetchRequests - 1);
